@@ -1,0 +1,23 @@
+{
+    "manifest_version": 3,
+    "name": "Artist Comment Inserter",
+    "version": "1.0",
+    "description": "Inserts comments for artists from a CSV file on PumpYourSound.",
+    "permissions": ["activeTab", "scripting"],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": "icon.png"
+    },
+    "background": {
+      "service_worker": "background.js"
+    },
+    "host_permissions": [
+      "*://pumpyoursound.com/*"
+    ],
+    "icons": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  }
+  
