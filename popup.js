@@ -2,6 +2,7 @@ document.getElementById('submit').addEventListener('click', () => {
     const fileInput = document.getElementById('csvFile');
     if (fileInput.files.length === 0) {
         alert('Please upload a CSV file');
+        console.log('No CSV file uploaded.');
         return;
     }
 
@@ -10,8 +11,14 @@ document.getElementById('submit').addEventListener('click', () => {
 
     reader.onload = function(e) {
         const csv = e.target.result;
+        console.log('CSV file successfully read.');
         const data = parseCSV(csv);
+        console.log('Parsed data:', data);
         sendToContentScript(data);
+    };
+
+    reader.onerror = function(e) {
+        console.error('Error reading CSV file:', e);
     };
 
     reader.readAsText(file);
@@ -20,21 +27,28 @@ document.getElementById('submit').addEventListener('click', () => {
 function parseCSV(csv) {
     const rows = csv.split('\n');
     const data = [];
-    for (let row of rows) {
+    rows.forEach((row, index) => {
         const columns = row.split(',');
         if (columns.length >= 2) {
-            data.push({ artist: columns[0].trim(), comment: columns[1].trim() });
+            const artist = columns[0].trim();
+            const comment = columns[1].trim();
+            console.log(`Row ${index}: Parsed artist="${artist}", comment="${comment}"`);
+            data.push({ artist, comment });
+        } else {
+            console.warn(`Row ${index}: Invalid or missing columns, skipping row.`);
         }
-    }
+    });
     return data;
 }
 
 function sendToContentScript(data) {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            function: insertComments,
-            args: [data]
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'insertComments', data }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.error('Error sending message to content script:', chrome.runtime.lastError);
+            } else {
+                console.log('Message sent to content script:', response);
+            }
         });
     });
 }
