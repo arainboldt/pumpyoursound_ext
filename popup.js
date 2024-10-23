@@ -27,9 +27,21 @@ document.getElementById('submit').addEventListener('click', () => {
 function parseCSV(csv) {
     const rows = csv.split('\n');
     const data = [];
+    const isSingleColumn = rows.every(row => row.split(',').length === 1); // Check if all rows have only one column
+
     rows.forEach((row, index) => {
         const columns = row.split(',');
-        if (columns.length >= 2) {
+        if (isSingleColumn) {
+            // Single column: Treat as comments only
+            const comment = columns[0].trim();
+            if (comment) {
+                console.log(`Row ${index}: Parsed comment="${comment}"`);
+                data.push({ comment });
+            } else {
+                console.warn(`Row ${index}: Invalid or empty comment, skipping row.`);
+            }
+        } else if (columns.length >= 2) {
+            // Two columns: Treat as artist and comment
             const artist = columns[0].trim();
             const comment = columns[1].trim();
             console.log(`Row ${index}: Parsed artist="${artist}", comment="${comment}"`);
@@ -38,12 +50,13 @@ function parseCSV(csv) {
             console.warn(`Row ${index}: Invalid or missing columns, skipping row.`);
         }
     });
-    return data;
+
+    return { data, isSingleColumn };
 }
 
-function sendToContentScript(data) {
+function sendToContentScript(parsedData) {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'insertComments', data }, (response) => {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'insertComments', parsedData }, (response) => {
             if (chrome.runtime.lastError) {
                 console.error('Error sending message to content script:', chrome.runtime.lastError);
             } else {
